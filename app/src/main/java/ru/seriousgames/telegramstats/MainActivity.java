@@ -13,6 +13,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -57,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
 
         setCurrentChart(4);
         addChartList(currentChart);
+        setCheckBoxListeners();
     }
 
     public void setLineVisibility(int line, boolean b){
@@ -80,6 +82,19 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void setCheckBoxListeners(){
+        for(int i=0; i < boxes.size(); i++){
+            final int ii = i;
+            final CheckBox box = boxes.get(i);
+            box.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                    setLineVisibility(ii, box.isChecked());
+                }
+            });
+        }
     }
 
     private void setCurrentChart(int chart){

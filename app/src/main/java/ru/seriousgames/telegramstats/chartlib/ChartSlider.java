@@ -16,7 +16,7 @@ public class ChartSlider extends View {
 
     private final int mDefaultHeight = 400;
     private final float THUMB_WIDTH_IN_DP = 8;
-    private final float PADDING_TOP = 5;
+    private final float PADDING_TOP = 1;
     private final Paint debugPaint;
     private Paint linePaint;
 
@@ -111,11 +111,12 @@ public class ChartSlider extends View {
     public void setLineVisibility(int line, boolean b){
         getCurrentChart().setLineVisibility(line, b);
         setRatios();
+        // startAnimation()
+        invalidate();
     }
 
     public void setRatios(){
         this.ratioWidthAndMaxY = (getHeight()-PADDING_TOP)/getCurrentChart().getMaxYAmongVisible();
-        pxBetweenX = (float)Math.floor(getWidth()/getCurrentChart().x.length)+1;
     }
 
     @Override
@@ -153,8 +154,10 @@ public class ChartSlider extends View {
 
     @Override
     protected void onDraw(Canvas canvas){
-        if (!created)
+        if (!created) {
+            pxBetweenX = (float)Math.floor(getWidth()/getCurrentChart().x.length)+1;
             setRatios();
+        }
 
         if (canvas != null) {
             drawChart(canvas);
