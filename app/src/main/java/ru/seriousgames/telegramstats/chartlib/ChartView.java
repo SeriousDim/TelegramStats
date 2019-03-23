@@ -84,7 +84,7 @@ public class ChartView extends View {
         rightC = (float)Math.floor(rightBound);
         rightD = rightBound - rightC;
 
-        pxBetweenX = getWidth()/(rightC-leftC+3);
+        pxBetweenX = getWidth()/(rightBound-leftBound);
         Log.d("stag", "pxBetweenX: "+pxBetweenX);
 
         invalidate();
