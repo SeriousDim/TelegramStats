@@ -10,6 +10,12 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 public class ChartView extends View {
@@ -21,7 +27,7 @@ public class ChartView extends View {
 
     List<Chart> charts;
     int currentChart;
-    private final float PADDING = 30;
+    private final float PADDING = 35;
     private final float DIVIDES = 6;
     private float pxBetweenLines, pxBetweenX, pxBetweenY;
     private float leftBound = 0, rightBound = 40;
@@ -48,8 +54,8 @@ public class ChartView extends View {
         linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         linePaint.setColor(Color.parseColor("#afafaf"));
         linePaint.setStrokeWidth(1);
-        textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        textPaint.setTextSize(30);
+        textPaint = new Paint();
+        textPaint.setTextSize(20);
         textPaint.setColor(Color.parseColor("#afafaf"));
         pathPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         pathPaint.setStrokeWidth(5);
@@ -67,7 +73,7 @@ public class ChartView extends View {
         this.charts = charts;
     }
 
-    public void notifyDataSetChanged(float... arr){ // [xLeft, xRight] (indexes)
+    public void notifyDataSetChanged(boolean left, float... arr){ // [xLeft, xRight] (indexes)
         // change params here
         leftBound = arr[0];
         rightBound = arr[1];
@@ -131,6 +137,52 @@ public class ChartView extends View {
         this.currentChart = c;
     }
 
+    public String drawDate(Calendar d){
+        int month = d.get(Calendar.MONTH);
+        String strMonth = "";
+        int date = d.get(Calendar.DAY_OF_MONTH);
+        switch (month){
+            case 0:
+                strMonth = "Jan ";
+                break;
+            case 1:
+                strMonth = "Feb ";
+                break;
+            case 2:
+                strMonth = "Mar ";
+                break;
+            case 3:
+                strMonth = "Apr ";
+                break;
+            case 4:
+                strMonth = "May ";
+                break;
+            case 5:
+                strMonth = "Jun ";
+                break;
+            case 6:
+                strMonth = "Jul ";
+                break;
+            case 7:
+                strMonth = "Aug ";
+                break;
+            case 8:
+                strMonth = "Sep ";
+                break;
+            case 9:
+                strMonth = "Oct ";
+                break;
+            case 10:
+                strMonth = "Nov ";
+                break;
+            case 11:
+                strMonth = "Dec ";
+                break;
+        }
+        strMonth = strMonth+date;
+        return strMonth;
+    }
+
     @Override
     protected void onDraw(Canvas canvas){
         if (!created){
@@ -142,21 +194,39 @@ public class ChartView extends View {
         if (canvas != null) {
             for (int i = 0; i < DIVIDES; i++){
                 canvas.drawLine(0, (getHeight() - PADDING) - pxBetweenLines * i, getWidth(),
-                        (getHeight() - 30) - pxBetweenLines * i, linePaint);
-                canvas.drawText(Math.floor(getCurrentChart().getMaxYAmongVisible()/DIVIDES * i)+"", PADDING, (getHeight() - PADDING) - pxBetweenLines * i - 5, textPaint);
+                        (getHeight() - PADDING) - pxBetweenLines * i, linePaint);
+                canvas.drawText((int)Math.floor(getCurrentChart().getMaxYAmongVisible()/DIVIDES * i)+"", 10, (getHeight() - PADDING) - pxBetweenLines * i - 5, textPaint);
             }
 
             Chart chart = getCurrentChart();
-            for (int i = 0; i < chart.y.length; i++){
+            for (int i=0; i < chart.y.length; i++){
                 if (chart.yVisible[i]){
                     Path path = new Path();
-                    path.moveTo(0, (getHeight() - PADDING) - chart.y[i][(int) leftC] * pxBetweenY);
-                    for (float j = leftC + 1; j <= rightC + 2; j++){
-                        path.lineTo(j * pxBetweenX, (getHeight() - PADDING) - chart.y[i][(int)j] * pxBetweenY);
+                    float tw;
+                    float pos = -pxBetweenX * leftD;
+                    float drawedPos = pos;
+                    Date date= new Date(chart.x[(int)leftC]);
+                    Calendar c = Calendar.getInstance();
+                    c.setTime(date);
+                    String ready = drawDate(c);
+                    tw = textPaint.measureText(ready);
+                    canvas.drawText(ready, pos, (getHeight() - 3), textPaint );
+
+                    path.moveTo(-pxBetweenX * leftD, (getHeight() - PADDING) - chart.y[i][(int)leftC] * pxBetweenY);
+                    for (int j = (int)leftC + 1; j <= rightBound+(1-rightD); j++){
+                        pos += pxBetweenX;
+                        path.lineTo(pos, (getHeight() - PADDING) - chart.y[i][j] * pxBetweenY);
+
+                        date= new Date(chart.x[j]);
+                        c = Calendar.getInstance();
+                        c.setTime(date);
+                        ready = drawDate(c);
+
+                        if (drawedPos + 2*tw < pos){
+                            drawedPos = pos;
+                            canvas.drawText(ready, pos, (getHeight() - 5), textPaint);
+                        }
                     }
-                    Matrix mtx = new Matrix();
-                    //mtx.postTranslate(-leftD * pxBetweenX, 0);
-                    //path.transform(mtx);
                     pathPaint.setColor(chart.yColors[i]);
                     canvas.drawPath(path, pathPaint);
                 }

@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
         chartSlider.setChartView(chartView);
         chartSlider.setCharts(charts);
 
-        setCurrentChart(4);
+        setCurrentChart(2);
         addChartList(currentChart);
         setCheckBoxListeners();
     }

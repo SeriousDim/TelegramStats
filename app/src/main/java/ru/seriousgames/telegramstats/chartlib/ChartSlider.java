@@ -26,11 +26,11 @@ public class ChartSlider extends View {
     Thumb leftThumb, rightThumb;
     List<Chart> charts;
     int currentChart;
-    Paint rectGray;
+    Paint rectGray, lineRect;
     float pxBetweenX, ratioWidthAndMaxY, oldRatioWidthAndMaxY;
 
     float downCrd;
-    boolean downed;
+    boolean downed, moving;
     boolean created, animation;
     boolean saved;
     Canvas cnvSaved;
@@ -58,11 +58,16 @@ public class ChartSlider extends View {
 
     private void initView(Context ctx){
         leftThumb = new Thumb(true, 0, pxFromDp(THUMB_WIDTH_IN_DP, ctx));
+        rightThumb = new Thumb(false, 150, pxFromDp(THUMB_WIDTH_IN_DP, ctx));
+        leftThumb.another = rightThumb;
+        rightThumb.another = leftThumb;
         linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         linePaint.setStrokeWidth(2);
         this.rectGray = new Paint(Paint.ANTI_ALIAS_FLAG);
         this.rectGray.setColor(Color.parseColor("#3a7f8081"));
         this.linePaint.setStyle(Paint.Style.STROKE);
+        this.lineRect = new Paint(Paint.ANTI_ALIAS_FLAG);
+        this.lineRect.setColor(Color.parseColor("#60669dc7"));
 
         this.time = System.currentTimeMillis();
 
@@ -72,22 +77,61 @@ public class ChartSlider extends View {
                 if (motionEvent.getAction()==MotionEvent.ACTION_DOWN &&
                         leftThumb.isPointInThumb(motionEvent.getX(), motionEvent.getY())){
                     downCrd = motionEvent.getX();
-                    downed = true;
+                    leftThumb.pressed = true;
                 }
-                if (motionEvent.getAction()==MotionEvent.ACTION_MOVE && downed){
+                else if (motionEvent.getAction()==MotionEvent.ACTION_DOWN &&
+                        rightThumb.isPointInThumb(motionEvent.getX(), motionEvent.getY())){
+                    downCrd = motionEvent.getX();
+                    rightThumb.pressed = true;
+                }
+                else if (motionEvent.getAction()==MotionEvent.ACTION_DOWN &&
+                        motionEvent.getX() > leftThumb.x + 2 * leftThumb.width &&
+                        motionEvent.getX() < rightThumb.x - rightThumb.width){
+                    downCrd = motionEvent.getX();
+                    moving = true;
+                }
+
+                if (motionEvent.getAction()==MotionEvent.ACTION_MOVE && leftThumb.pressed){
                     float diff = motionEvent.getX()-downCrd;
                     leftThumb.plusX(diff);
                     downCrd = motionEvent.getX();
+                    checkAndNotify(true);
                     invalidate();
                 }
+                else if (motionEvent.getAction()==MotionEvent.ACTION_MOVE && rightThumb.pressed){
+                    float diff = motionEvent.getX()-downCrd;
+                    rightThumb.plusX(diff);
+                    downCrd = motionEvent.getX();
+                    checkAndNotify(false);
+                    invalidate();
+                }
+                else if (motionEvent.getAction()==MotionEvent.ACTION_MOVE && moving){
+                    float diff = motionEvent.getX()-downCrd;
+                    leftThumb.plusX(diff);
+                    rightThumb.plusX(diff);
+                    downCrd = motionEvent.getX();
+                    checkAndNotify(true);
+                    invalidate();
+                }
+
                 if (motionEvent.getAction()==MotionEvent.ACTION_UP){
                     downed = false;
+                    checkAndNotify(true);
+                    leftThumb.pressed = false;
+                    rightThumb.pressed = false;
+                    moving = false;
                 }
-                notifyChartView(leftThumb.x/pxBetweenX, (leftThumb.x+leftThumb.width)/pxBetweenX+30);
+                //invalidate();
                 return true;
             }
         });
     }
+
+    public void checkAndNotify(boolean b){
+        float a0 = leftThumb.x/pxBetweenX >= 0 ? leftThumb.x/pxBetweenX : 0;
+        float a1 = (rightThumb.x+rightThumb.width)/pxBetweenX <= getWidth() ? (rightThumb.x+rightThumb.width)/pxBetweenX : getWidth()/pxBetweenX;
+        notifyChartView(b, a0, a1);
+    };
 
     public void setChartView(ChartView view){
         if (view !=  null)
@@ -98,8 +142,8 @@ public class ChartSlider extends View {
         this.charts = charts;
     }
 
-    public void notifyChartView(float... arr){
-        this.chartView.notifyDataSetChanged(arr);
+    public void notifyChartView(boolean left, float... arr){
+        this.chartView.notifyDataSetChanged(left, arr);
     }
 
     private float pxFromDp(float dp, Context ctx) {
@@ -168,7 +212,7 @@ public class ChartSlider extends View {
         if (!created) {
             pxBetweenX = (float)Math.floor(getWidth()/getCurrentChart().x.length)+1;
             setRatios();
-            notifyChartView(leftThumb.x, 40);
+            notifyChartView(true, leftThumb.x/pxBetweenX, (rightThumb.x+rightThumb.width)/pxBetweenX);
         }
 
         if (canvas != null) {
@@ -177,7 +221,11 @@ public class ChartSlider extends View {
             }
             drawChart(canvas);
             leftThumb.draw(canvas);
+            rightThumb.draw(canvas);
+            canvas.drawRect(leftThumb.x + leftThumb.width, 0, rightThumb.x, 5, lineRect);
+            canvas.drawRect(leftThumb.x + leftThumb.width, getHeight() - 5, rightThumb.x, getHeight(), lineRect);
             canvas.drawRect(0, 0, leftThumb.x, getHeight(), rectGray);
+            canvas.drawRect(rightThumb.x + rightThumb.width, 0, getWidth(), getHeight(), rectGray);
         }
     }
 
@@ -213,6 +261,8 @@ public class ChartSlider extends View {
         public float width;
         public float[] hitbox;
         public Paint paint;
+        public boolean pressed;
+        public Thumb another;
 
         public Thumb(boolean left, float x, float width) {
             this.left = left;
