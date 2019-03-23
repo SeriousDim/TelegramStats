@@ -63,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void setLineVisibility(int line, boolean b){
         chartSlider.setLineVisibility(line, b);
+        chartView.setLineVisibility(line, b);
     }
 
     @Override

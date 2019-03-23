@@ -1,8 +1,10 @@
 package ru.seriousgames.telegramstats.chartlib;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.util.AttributeSet;
@@ -25,17 +27,18 @@ public class ChartSlider extends View {
     List<Chart> charts;
     int currentChart;
     Paint rectGray;
-    float pxBetweenX, ratioWidthAndMaxY;
+    float pxBetweenX, ratioWidthAndMaxY, oldRatioWidthAndMaxY;
 
     float downCrd;
     boolean downed;
-    boolean created;
+    boolean created, animation;
     boolean saved;
     Canvas cnvSaved;
 
     int fps;
     long time;
     long elapsed;
+    Matrix mtx;
 
     public ChartSlider(Context ctx){
         super(ctx);
@@ -80,6 +83,7 @@ public class ChartSlider extends View {
                 if (motionEvent.getAction()==MotionEvent.ACTION_UP){
                     downed = false;
                 }
+                notifyChartView(leftThumb.x/pxBetweenX, (leftThumb.x+leftThumb.width)/pxBetweenX+30);
                 return true;
             }
         });
@@ -94,7 +98,7 @@ public class ChartSlider extends View {
         this.charts = charts;
     }
 
-    public void notifyChartView(int[] arr){
+    public void notifyChartView(float... arr){
         this.chartView.notifyDataSetChanged(arr);
     }
 
@@ -111,11 +115,18 @@ public class ChartSlider extends View {
     public void setLineVisibility(int line, boolean b){
         getCurrentChart().setLineVisibility(line, b);
         setRatios();
-        // startAnimation()
+        //startAnimation();
         invalidate();
     }
 
+    public void startAnimation (){
+        animation = true;
+
+        float ratio = ratioWidthAndMaxY/oldRatioWidthAndMaxY;
+    }
+
     public void setRatios(){
+        this.oldRatioWidthAndMaxY = ratioWidthAndMaxY;
         this.ratioWidthAndMaxY = (getHeight()-PADDING_TOP)/getCurrentChart().getMaxYAmongVisible();
     }
 
@@ -157,9 +168,13 @@ public class ChartSlider extends View {
         if (!created) {
             pxBetweenX = (float)Math.floor(getWidth()/getCurrentChart().x.length)+1;
             setRatios();
+            notifyChartView(leftThumb.x, 40);
         }
 
         if (canvas != null) {
+            if (animation){
+
+            }
             drawChart(canvas);
             leftThumb.draw(canvas);
             canvas.drawRect(0, 0, leftThumb.x, getHeight(), rectGray);
