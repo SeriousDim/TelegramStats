@@ -9,16 +9,21 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
+
+import ru.seriousgames.telegramstats.MainActivity;
+import ru.seriousgames.telegramstats.R;
 
 public class ChartView extends View {
 
@@ -37,12 +42,14 @@ public class ChartView extends View {
     private float leftC, leftD, rightC, rightD, strLength;
     private float downCrd;
     private boolean created, drawingFlag;
-    private int modulo;
+    private int modulo = 1;
+    MainActivity ctx;
 
     public ChartView(Context ctx){
         super(ctx);
         this.debugPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         this.debugPaint.setColor(Color.parseColor("#FF0000"));
+        this.ctx = (MainActivity) ctx;
 
         initView();
     }
@@ -51,6 +58,7 @@ public class ChartView extends View {
         super(context, attrs);
         this.debugPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         this.debugPaint.setColor(Color.parseColor("#FF0000"));
+        this.ctx = (MainActivity)context;
 
         initView();
     }
@@ -60,7 +68,7 @@ public class ChartView extends View {
         linePaint.setColor(Color.parseColor("#afafaf"));
         linePaint.setStrokeWidth(1);
         textPaint = new Paint();
-        textPaint.setTextSize(20);
+        textPaint.setTextSize(25);
         textPaint.setColor(Color.parseColor("#afafaf"));
         pathPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         pathPaint.setStrokeWidth(5);
@@ -71,7 +79,6 @@ public class ChartView extends View {
         ovalPaint.setStrokeWidth(3);
 
         fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        fillPaint.setColor(Color.parseColor("#ffffff"));
 
         strLength = textPaint.measureText("Mar 99");
 
@@ -97,7 +104,7 @@ public class ChartView extends View {
 
     public void setLineVisibility(int line, boolean b){
         getCurrentChart().setLineVisibility(line, b);
-        pxBetweenY = (getHeight() - PADDING)/getCurrentChart().getMaxYAmongVisible();
+        pxBetweenY = (getHeight() - PADDING)/getMaxAmongVisible(leftC, rightC);
         //startAnimation();
         invalidate();
     }
@@ -111,11 +118,13 @@ public class ChartView extends View {
         leftBound = arr[0];
         rightBound = arr[1];
 
+        if (leftBound < 0)
+            leftBound = 0;
+
         Log.d("stag", "height CV: "+getHeight()+" "+(getHeight() - PADDING));
         Log.d("stag", "maxY: "+getCurrentChart().getMaxYAmongVisible());
 
         this.oldPxBetweenY = pxBetweenY;
-        this.pxBetweenY = (getHeight() - PADDING)/getCurrentChart().getMaxYAmongVisible();
 
         Log.d("stag", "pxBetweenY: "+pxBetweenY);
 
@@ -124,8 +133,11 @@ public class ChartView extends View {
         rightC = (float)Math.floor(rightBound);
         rightD = rightBound - rightC;
 
+        this.pxBetweenY = (getHeight() - PADDING)/getMaxAmongVisible(leftC, rightC);
+
         pxBetweenX = getWidth()/(rightBound-leftBound);
         drawingFlag = false;
+        ctx.hideInfo();
         setModulo();
         Log.d("stag", "pxBetweenX: "+pxBetweenX);
 
@@ -229,11 +241,89 @@ public class ChartView extends View {
         modulo = ind;
     }
 
+    public float getMaxAmongVisible(float left, float right){
+        float max = 0;
+        Chart chart = getCurrentChart();
+        for (int i = 0; i < chart.y.length; i++){
+            if (chart.yVisible[i]){
+                for (float j = left; j <= right; j++){
+                    max = Math.max(max, chart.y[i][(int)j]);
+                }
+            }
+        }
+        return max;
+    }
+
+    public String getShortNum(float num){
+        String s = "";
+        int i = 1;
+        float n = num;
+        while (n >= 1000){
+            n /= 1000;
+            i++;
+        }
+        s = ((int)Math.floor(n))+"";
+        switch(i){
+            case 2:
+                s += "."+((int)Math.floor((n - Math.floor(n)) * 10));
+                s += "K";
+                break;
+            case 3:
+                s += "."+((int)Math.floor((n - Math.floor(n)) * 10));
+                s += "M";
+                break;
+        }
+
+        return s;
+    }
+
+    public void notifyInfoView(List<Float> arr, String c, float x){
+        String[] s = new String[arr.size()];
+        for (int i=0; i<s.length; i++)
+            s[i] = getShortNum(arr.get(i));
+        ctx.setDataToInfoActivity(s, c, x);
+    }
+
+    public String getFullDate(Calendar c){
+        String part = drawDate(c);
+        int day = c.get(Calendar.DAY_OF_WEEK);
+        String dayS = "";
+        switch(day){
+            case 7:
+                dayS = "Sun, ";
+                break;
+            case 1:
+                dayS = "Mon, ";
+                break;
+            case 2:
+                dayS = "Tue, ";
+                break;
+            case 3:
+                dayS = "Wed, ";
+                break;
+            case 4:
+                dayS = "Thu, ";
+                break;
+            case 5:
+                dayS = "Fri, ";
+                break;
+            case 6:
+                dayS = "Sat, ";
+                break;
+        }
+        return dayS+part;
+    }
+
     @Override
     protected void onDraw(Canvas canvas){
         if (!created){
             pxBetweenLines = getHeight()/DIVIDES;
             //notifyDataSetChanged(new float[]{leftBound, rightBound});
+            TypedValue a = new TypedValue();
+            ctx.getTheme().resolveAttribute(R.attr.colorBackgroundFloating, a, true);
+            if (a.type >= TypedValue.TYPE_FIRST_COLOR_INT && a.type <= TypedValue.TYPE_LAST_COLOR_INT) {
+                fillPaint.setColor(a.data);
+            }
             created = true;
         }
 
@@ -241,7 +331,7 @@ public class ChartView extends View {
             for (int i = 0; i < DIVIDES; i++){
                 canvas.drawLine(0, (getHeight() - PADDING) - pxBetweenLines * i, getWidth(),
                         (getHeight() - PADDING) - pxBetweenLines * i, linePaint);
-                canvas.drawText((int)Math.floor(getCurrentChart().getMaxYAmongVisible()/DIVIDES * i)+"", 10, (getHeight() - PADDING) - pxBetweenLines * i - 5, textPaint);
+                canvas.drawText(getShortNum(getMaxAmongVisible(leftC, rightC)/DIVIDES * i), 10, (getHeight() - PADDING) - pxBetweenLines * i - 5, textPaint);
             }
 
             Chart chart = getCurrentChart();
@@ -256,8 +346,6 @@ public class ChartView extends View {
                     String ready = drawDate(c);
                     if (leftC%modulo==0)
                         canvas.drawText(ready, pos, (getHeight() - 5), textPaint);
-                    if (leftC-1%modulo==0)
-                        canvas.drawText(ready, pos-pxBetweenX, (getHeight() - 5), textPaint);
 
                     path.moveTo(-pxBetweenX * leftD, (getHeight() - PADDING) - chart.y[i][(int)leftC] * pxBetweenY);
                     for (int j = (int)leftC + 1; j <= rightBound+(1-rightD); j++){
@@ -278,9 +366,22 @@ public class ChartView extends View {
             }
 
             if (drawingFlag){
+                ArrayList<Float> arr = new ArrayList<>();
                 float ind = Math.round(leftBound + downCrd / pxBetweenX);
-                float x = -pxBetweenX * leftD + ind * pxBetweenX;
+                float x = -pxBetweenX * leftD + (ind - leftC) * pxBetweenX;
                 canvas.drawLine(x, 0, x, getHeight(), linePaint);
+                for (int i = 0; i < chart.y.length; i++){
+                    if (chart.yVisible[i]){
+                        canvas.drawCircle(x, (getHeight() - PADDING) - chart.y[i][(int)ind] * pxBetweenY, 5, fillPaint);
+                        ovalPaint.setColor(chart.yColors[i]);
+                        canvas.drawCircle(x, (getHeight() - PADDING) - chart.y[i][(int)ind] * pxBetweenY, 7, ovalPaint);
+                        arr.add((float)chart.y[i][(int)ind]);
+                    }
+                }
+                Date date= new Date(chart.x[(int)ind]);
+                Calendar c = Calendar.getInstance();
+                c.setTime(date);
+                notifyInfoView(arr, getFullDate(c), x);
             }
 
             Log.d("stag", "leftBound (norm, c, d): "+leftBound+" "+leftC+" "+leftD);

@@ -7,6 +7,7 @@ import android.support.constraint.ConstraintLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatDelegate;
+import android.support.v7.widget.CardView;
 import android.text.Layout;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -41,6 +42,9 @@ public class MainActivity extends AppCompatActivity {
     boolean darkTheme = false;
     int currentChart;
     Spinner spinner;
+    CardView info;
+    LinearLayout infoData;
+    TextView dateView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +63,9 @@ public class MainActivity extends AppCompatActivity {
         chartSlider = findViewById(R.id.chartSlider);
         chartSlider.setChartView(chartView);
         chartSlider.setCharts(charts);
+        info = findViewById(R.id.info);
+        infoData = findViewById(R.id.data);
+        dateView = findViewById(R.id.date);
 
         spinner = findViewById(R.id.spinner);
         ArrayAdapter<?> adapter =
@@ -77,6 +84,36 @@ public class MainActivity extends AppCompatActivity {
         });
 
         setCurrentChart(0);
+    }
+
+    public void hideInfo(){
+        info.setVisibility(View.GONE);
+    }
+
+    public void setDataToInfoActivity(String[] arr, String date, float x){
+        Chart chart = getCurrentChart();
+        info.setVisibility(View.VISIBLE);
+        dateView.setText(date);
+        infoData.removeAllViews();
+        int ind = 0;
+        for (int i=0; i<chart.y.length; i++){
+            if (chart.yVisible[i]){
+                View v = LayoutInflater.from(this).inflate(R.layout.title_layout, infoData, false);
+                TextView amount = v.findViewById(R.id.amount);
+                TextView title = v.findViewById(R.id.title);
+                amount.setTextColor(chart.yColors[i]);
+                title.setTextColor(chart.yColors[i]);
+                amount.setText(arr[ind]);
+                title.setText(chart.yNames[i]);
+                ind++;
+                infoData.addView(v);
+                info.setX(
+                                (x + 5 + info.getWidth() > chartView.getWidth() ?
+                                        chartView.getWidth() - info.getWidth() - 5 :
+                                        x + 5)
+                );
+            }
+        }
     }
 
     public void setLineVisibility(int line, boolean b){
