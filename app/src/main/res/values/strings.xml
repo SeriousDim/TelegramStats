@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Statistics</string>
+
+    <string-array name="chart_names">
+        <item>Chart 1</item>
+        <item>Chart 2</item>
+        <item>Chart 3</item>
+        <item>Chart 4</item>
+        <item>Chart 5</item>
+    </string-array>
 </resources>

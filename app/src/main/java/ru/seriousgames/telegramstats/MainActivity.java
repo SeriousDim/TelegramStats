@@ -12,9 +12,12 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -37,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<CheckBox> boxes;
     boolean darkTheme = false;
     int currentChart;
+    Spinner spinner;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,9 +60,23 @@ public class MainActivity extends AppCompatActivity {
         chartSlider.setChartView(chartView);
         chartSlider.setCharts(charts);
 
-        setCurrentChart(2);
-        addChartList(currentChart);
-        setCheckBoxListeners();
+        spinner = findViewById(R.id.spinner);
+        ArrayAdapter<?> adapter =
+                ArrayAdapter.createFromResource(this, R.array.chart_names, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                setCurrentChart(i);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+
+        setCurrentChart(0);
     }
 
     public void setLineVisibility(int line, boolean b){
@@ -100,8 +118,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void setCurrentChart(int chart){
         this.currentChart = chart;
+        for (int i = 0; i < getCurrentChart().yVisible.length; i++){
+            getCurrentChart().yVisible[i] = true;
+        }
         this.chartView.setCurrentChart(chart);
         this.chartSlider.setCurrentChart(chart);
+
+        chartList.removeAllViews();
+        boxes.clear();
+        addChartList(currentChart);
+        setCheckBoxListeners();
     }
 
     public Chart getCurrentChart(){

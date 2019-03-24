@@ -34,6 +34,7 @@ public class ChartSlider extends View {
     boolean created, animation;
     boolean saved;
     Canvas cnvSaved;
+    Context ctx;
 
     int fps;
     long time;
@@ -57,10 +58,9 @@ public class ChartSlider extends View {
     }
 
     private void initView(Context ctx){
+        this.ctx = ctx;
         leftThumb = new Thumb(true, 0, pxFromDp(THUMB_WIDTH_IN_DP, ctx));
-        rightThumb = new Thumb(false, 150, pxFromDp(THUMB_WIDTH_IN_DP, ctx));
         leftThumb.another = rightThumb;
-        rightThumb.another = leftThumb;
         linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         linePaint.setStrokeWidth(2);
         this.rectGray = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -128,9 +128,9 @@ public class ChartSlider extends View {
     }
 
     public void checkAndNotify(boolean b){
-        float a0 = leftThumb.x/pxBetweenX >= 0 ? leftThumb.x/pxBetweenX : 0;
-        float a1 = (rightThumb.x+rightThumb.width)/pxBetweenX <= getWidth() ? (rightThumb.x+rightThumb.width)/pxBetweenX : getWidth()/pxBetweenX;
-        notifyChartView(b, a0, a1);
+        leftThumb.setX(leftThumb.x);
+        rightThumb.setX(rightThumb.x);
+        notifyChartView(b, leftThumb.x/pxBetweenX, (rightThumb.x+rightThumb.width)/pxBetweenX);
     };
 
     public void setChartView(ChartView view){
@@ -151,9 +151,32 @@ public class ChartSlider extends View {
     }
 
     public void setCurrentChart(int c){
-        this.currentChart = c;
-        //pxBetweenX = getWidth()/getCurrentChart().x.length;
-        //setRatios();
+        currentChart = c;
+        if (!created) {
+            post(new Runnable() {
+                @Override
+                public void run() {
+                    if (rightThumb == null) {
+                        rightThumb = new Thumb(false, getWidth() * 0.333f, pxFromDp(THUMB_WIDTH_IN_DP, ctx));
+                        rightThumb.another = leftThumb;
+                    }
+                    pxBetweenX = (float) Math.floor(getWidth() / getCurrentChart().x.length) + 1;
+                    setRatios();
+                    notifyChartView(true, leftThumb.x / pxBetweenX, (rightThumb.x + rightThumb.width) / pxBetweenX);
+                    invalidate();
+                }
+            });
+        } else {
+            if (rightThumb == null){
+                rightThumb = new Thumb(false, getWidth() * 0.333f, pxFromDp(THUMB_WIDTH_IN_DP, ctx));
+                rightThumb.another = leftThumb;
+                leftThumb.another = rightThumb;
+            }
+            pxBetweenX = (float)Math.floor(getWidth()/getCurrentChart().x.length)+1;
+            setRatios();
+            notifyChartView(true, leftThumb.x/pxBetweenX, (rightThumb.x+rightThumb.width)/pxBetweenX);
+            invalidate();
+        }
     }
 
     public void setLineVisibility(int line, boolean b){
@@ -211,8 +234,14 @@ public class ChartSlider extends View {
     protected void onDraw(Canvas canvas){
         if (!created) {
             pxBetweenX = (float)Math.floor(getWidth()/getCurrentChart().x.length)+1;
+            /*rightThumb = new Thumb(false, getWidth() * 0.333f, pxFromDp(THUMB_WIDTH_IN_DP, ctx));
+            rightThumb.another = leftThumb;*/
             setRatios();
-            notifyChartView(true, leftThumb.x/pxBetweenX, (rightThumb.x+rightThumb.width)/pxBetweenX);
+            rightThumb = new Thumb(false, getWidth() * 0.333f, pxFromDp(THUMB_WIDTH_IN_DP, ctx));
+            rightThumb.another = leftThumb;
+            leftThumb.another = rightThumb;
+            //notifyChartView(true, leftThumb.x/pxBetweenX, (rightThumb.x+rightThumb.width)/pxBetweenX);
+            created = true;
         }
 
         if (canvas != null) {
@@ -278,8 +307,12 @@ public class ChartSlider extends View {
         public void setX(float x){
             if (this.x > getWidth()-this.width)
                 this.x = getWidth()-this.width;
-            if (this.x < 0)
+            else if (this.x < 0)
                 this.x = 0;
+            else if (this.x + 7 * this.width > another.x && this.left)
+                this.x = another.x - 7 * this.width;
+            else if (this.x - 7 * this.width < another.x && !this.left)
+                this.x = another.x + 7 * this.width;
             else
                 this.x = x;
 

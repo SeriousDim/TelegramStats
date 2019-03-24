@@ -1,6 +1,7 @@
 package ru.seriousgames.telegramstats.chartlib;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
@@ -8,6 +9,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 
 import java.time.LocalDate;
@@ -24,15 +26,18 @@ public class ChartView extends View {
     private final Paint debugPaint;
 
     private Paint linePaint, textPaint, pathPaint;
+    private Paint ovalPaint, fillPaint;
 
     List<Chart> charts;
     int currentChart;
     private final float PADDING = 35;
     private final float DIVIDES = 6;
-    private float pxBetweenLines, pxBetweenX, pxBetweenY;
+    private float pxBetweenLines, pxBetweenX, pxBetweenY, oldPxBetweenY;
     private float leftBound = 0, rightBound = 40;
-    private float leftC, leftD, rightC, rightD;
-    private boolean created;
+    private float leftC, leftD, rightC, rightD, strLength;
+    private float downCrd;
+    private boolean created, drawingFlag;
+    private int modulo;
 
     public ChartView(Context ctx){
         super(ctx);
@@ -60,6 +65,34 @@ public class ChartView extends View {
         pathPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         pathPaint.setStrokeWidth(5);
         pathPaint.setStyle(Paint.Style.STROKE);
+
+        ovalPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        ovalPaint.setStyle(Paint.Style.STROKE);
+        ovalPaint.setStrokeWidth(3);
+
+        fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        fillPaint.setColor(Color.parseColor("#ffffff"));
+
+        strLength = textPaint.measureText("Mar 99");
+
+        setOnTouchListener(new OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                int action = motionEvent.getAction();
+                if (action == MotionEvent.ACTION_DOWN) {
+                    drawingFlag = true;
+                    downCrd = motionEvent.getX();
+                }
+                else if (action == MotionEvent.ACTION_MOVE){
+                    downCrd = motionEvent.getX();
+                }
+                /*else if (action == MotionEvent.ACTION_UP)
+                    drawingFlag = false;*/
+                invalidate();
+
+                return true;
+            }
+        });
     }
 
     public void setLineVisibility(int line, boolean b){
@@ -81,6 +114,7 @@ public class ChartView extends View {
         Log.d("stag", "height CV: "+getHeight()+" "+(getHeight() - PADDING));
         Log.d("stag", "maxY: "+getCurrentChart().getMaxYAmongVisible());
 
+        this.oldPxBetweenY = pxBetweenY;
         this.pxBetweenY = (getHeight() - PADDING)/getCurrentChart().getMaxYAmongVisible();
 
         Log.d("stag", "pxBetweenY: "+pxBetweenY);
@@ -91,6 +125,8 @@ public class ChartView extends View {
         rightD = rightBound - rightC;
 
         pxBetweenX = getWidth()/(rightBound-leftBound);
+        drawingFlag = false;
+        setModulo();
         Log.d("stag", "pxBetweenX: "+pxBetweenX);
 
         invalidate();
@@ -183,6 +219,16 @@ public class ChartView extends View {
         return strMonth;
     }
 
+    public void setModulo(){
+        int ind = 1;
+        float px = ind * pxBetweenX;
+        while (px < 2 * strLength){
+            ind++;
+            px = ind * pxBetweenX;
+        }
+        modulo = ind;
+    }
+
     @Override
     protected void onDraw(Canvas canvas){
         if (!created){
@@ -202,15 +248,16 @@ public class ChartView extends View {
             for (int i=0; i < chart.y.length; i++){
                 if (chart.yVisible[i]){
                     Path path = new Path();
-                    float tw;
                     float pos = -pxBetweenX * leftD;
-                    float drawedPos = pos;
+                    /*float drawedPos = pos;*/
                     Date date= new Date(chart.x[(int)leftC]);
                     Calendar c = Calendar.getInstance();
                     c.setTime(date);
                     String ready = drawDate(c);
-                    tw = textPaint.measureText(ready);
-                    canvas.drawText(ready, pos, (getHeight() - 3), textPaint );
+                    if (leftC%modulo==0)
+                        canvas.drawText(ready, pos, (getHeight() - 5), textPaint);
+                    if (leftC-1%modulo==0)
+                        canvas.drawText(ready, pos-pxBetweenX, (getHeight() - 5), textPaint);
 
                     path.moveTo(-pxBetweenX * leftD, (getHeight() - PADDING) - chart.y[i][(int)leftC] * pxBetweenY);
                     for (int j = (int)leftC + 1; j <= rightBound+(1-rightD); j++){
@@ -222,23 +269,22 @@ public class ChartView extends View {
                         c.setTime(date);
                         ready = drawDate(c);
 
-                        if (drawedPos + 2*tw < pos){
-                            drawedPos = pos;
+                        if (j%modulo==0)
                             canvas.drawText(ready, pos, (getHeight() - 5), textPaint);
-                        }
                     }
                     pathPaint.setColor(chart.yColors[i]);
                     canvas.drawPath(path, pathPaint);
                 }
             }
 
+            if (drawingFlag){
+                float ind = Math.round(leftBound + downCrd / pxBetweenX);
+                float x = -pxBetweenX * leftD + ind * pxBetweenX;
+                canvas.drawLine(x, 0, x, getHeight(), linePaint);
+            }
+
             Log.d("stag", "leftBound (norm, c, d): "+leftBound+" "+leftC+" "+leftD);
             Log.d("stag", "rightBound (norm, c, d): "+rightBound+" "+rightC+" "+rightD);
-
-            /*canvas.drawLine(PADDING, PADDING, getWidth()-PADDING, PADDING, debugPaint);
-            canvas.drawLine(PADDING, PADDING, PADDING, getHeight()-PADDING, debugPaint);
-            canvas.drawLine(PADDING, getHeight()-PADDING, getWidth()-PADDING, getHeight()-PADDING, debugPaint);
-            canvas.drawLine(getWidth()-PADDING, getHeight()-PADDING, getWidth()-PADDING, PADDING, debugPaint);*/
         }
     }
 
