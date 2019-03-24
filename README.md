@@ -16,7 +16,7 @@ _Created by Dmitrii Lykov aka SeriousDim from scratch._
 - [x] Draw dates and delimiters
 - [x] Make choosing of all charts (Spinner)
 - [x] Fix change of charts
-- [ ] Fix range of ChartSlider
+- [x] Fix range of ChartSlider
 - [ ] Optimization
 - [ ] Hellish animations
 - [ ] Stable color theme change
