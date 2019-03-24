@@ -14,7 +14,7 @@ _Created by Dmitrii Lykov aka SeriousDim from scratch._
 - [x] Make showing/hiding charts
 - [x] Make charts rendered on ChartView
 - [x] Draw dates and delimiters
-- [x] Make choosing of all charts (Spinner or TabLayout)
+- [x] Make choosing of all charts (Spinner)
 - [ ] Fix change of charts
 - [ ] Fix range of ChartSlider
 - [ ] Optimization
