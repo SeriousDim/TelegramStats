@@ -15,7 +15,7 @@ _Created by Dmitrii Lykov aka SeriousDim from scratch._
 - [x] Make charts rendered on ChartView
 - [x] Draw dates and delimiters
 - [x] Make choosing of all charts (Spinner)
-- [ ] Fix change of charts
+- [x] Fix change of charts
 - [ ] Fix range of ChartSlider
 - [ ] Optimization
 - [ ] Hellish animations
