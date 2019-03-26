@@ -4,3 +4,8 @@ Solution of the [Telegram Contest task](https://t.me/contest/6) (March 10-24 201
 Android software for showing simple charts based on JSON input file (located in assets folder).
 
 _No specialized charting libraries have not been used._
+
+To-do:
+- [ ] Dates animation
+- [ ] Chart animation (change of max among visible)
+- [ ] Optimization
